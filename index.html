@@ -1434,20 +1434,37 @@
                 <h3>⚙️ API 설정</h3>
                 <button class="btn btn-secondary" onclick="closeApiModal()">×</button>
             </div>
-            
+
+            <!-- 보안 및 개인정보 보호 알림 -->
+            <div style="background: linear-gradient(135deg, #e3f2fd, #f1f8e9); padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--success);">
+                <h4 style="color: #1565c0; margin-bottom: 8px; font-size: 0.95rem;">🔒 보안 및 개인정보 보호</h4>
+                <ul style="color: #2e7d32; font-size: 0.85rem; margin: 0; padding-left: 20px; line-height: 1.5;">
+                    <li>API 키는 <strong>브라우저의 로컬 저장소에만 저장</strong>되며 외부 서버로 전송되지 않습니다</li>
+                    <li>모든 YouTube API 호출은 <strong>클라이언트에서 직접</strong> Google 서버로 요청됩니다</li>
+                    <li>개인정보나 검색 기록은 <strong>수집하거나 저장하지 않습니다</strong></li>
+                    <li>API 키는 언제든지 <strong>Google Cloud Console에서 무효화</strong>할 수 있습니다</li>
+                </ul>
+            </div>
+
             <div class="form-group">
                 <label class="form-label">YouTube Data API v3 키</label>
-                <input type="password" id="apiKeyInput" class="form-input" placeholder="AIza...">
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="API 키를 입력하세요">
                 <div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-tertiary);">
-                    <a href="https://console.developers.google.com/" target="_blank" style="color: var(--accent-primary);">
-                        Google Cloud Console에서 API 키 발급받기 →
+                    <a href="https://console.developers.google.com/" target="_blank" style="color: var(--accent-primary); text-decoration: none;">
+                        🌐 Google Cloud Console에서 API 키 발급받기 →
                     </a>
                 </div>
             </div>
 
+            <!-- 연결 상태 표시 -->
+            <div id="apiConnectionStatus" style="margin-top: 12px; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; display: none;">
+                <span id="apiStatusIcon"></span>
+                <span id="apiStatusText"></span>
+            </div>
+
             <div style="display: flex; gap: 16px; margin-top: 24px;">
-                <button class="btn btn-primary" style="flex: 1;" onclick="saveApiKey()">저장</button>
-                <button class="btn btn-secondary" style="flex: 1;" onclick="testApiKey()">연결 테스트</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="saveApiKey()">💾 저장</button>
+                <button class="btn btn-secondary" style="flex: 1;" onclick="testApiKey()">🔍 연결 테스트</button>
             </div>
         </div>
     </div>
@@ -1689,31 +1706,33 @@
             async testApiKey() {
                 const input = document.getElementById('modal-api-key') || document.getElementById('apiKeyInput');
                 if (!input) return;
-                
+
                 const apiKey = input.value.trim();
-                
+
                 if (!apiKey) {
-                    this.updateApiStatus('error', 'API 키를 입력해주세요');
+                    this.showApiStatus('error', '❌ 먼저 API 키를 입력해주세요.');
                     return;
                 }
-                
-                const testBtn = document.getElementById('test-api-key');
-                const originalText = testBtn ? testBtn.textContent : '';
-                
+
+                const testBtn = document.querySelectorAll('button[onclick="testApiKey()"]')[0];
+                const originalText = testBtn ? testBtn.innerHTML : '';
+
                 if (testBtn) {
                     testBtn.disabled = true;
-                    testBtn.textContent = '테스트 중...';
+                    testBtn.innerHTML = '🔄 테스트 중...';
                 }
-                
+
+                this.showApiStatus('testing', '🔄 API 연결을 확인하는 중입니다...');
+
                 try {
                     await this.validateApiKey(apiKey);
-                    this.updateApiStatus('connected', 'API 키가 유효합니다');
+                    this.showApiStatus('success', '✅ API 키가 유효합니다! 연결이 성공했습니다.');
                 } catch (error) {
-                    this.updateApiStatus('error', `연결 실패: ${error.message}`);
+                    this.showApiStatus('error', `❌ 연결 실패: ${error.message || 'API 키를 확인해주세요'}`);
                 } finally {
                     if (testBtn) {
                         testBtn.disabled = false;
-                        testBtn.textContent = originalText;
+                        testBtn.innerHTML = originalText;
                     }
                 }
             }
@@ -1737,14 +1756,55 @@
                 return await response.json();
             }
 
+            showApiStatus(status, message) {
+                const statusDiv = document.getElementById('apiConnectionStatus');
+                const statusIcon = document.getElementById('apiStatusIcon');
+                const statusText = document.getElementById('apiStatusText');
+
+                if (!statusDiv || !statusIcon || !statusText) return;
+
+                statusDiv.style.display = 'block';
+                statusIcon.textContent = '';
+                statusText.textContent = message;
+
+                // Reset classes
+                statusDiv.className = '';
+                statusDiv.style.padding = '8px 12px';
+                statusDiv.style.borderRadius = '6px';
+                statusDiv.style.fontSize = '0.85rem';
+                statusDiv.style.marginTop = '12px';
+
+                switch(status) {
+                    case 'success':
+                        statusDiv.style.background = 'linear-gradient(135deg, #d4edda, #c3e6cb)';
+                        statusDiv.style.color = '#155724';
+                        statusDiv.style.border = '1px solid #c3e6cb';
+                        break;
+                    case 'error':
+                        statusDiv.style.background = 'linear-gradient(135deg, #f8d7da, #f5c6cb)';
+                        statusDiv.style.color = '#721c24';
+                        statusDiv.style.border = '1px solid #f5c6cb';
+                        break;
+                    case 'testing':
+                        statusDiv.style.background = 'linear-gradient(135deg, #d1ecf1, #bee5eb)';
+                        statusDiv.style.color = '#0c5460';
+                        statusDiv.style.border = '1px solid #bee5eb';
+                        break;
+                    default:
+                        statusDiv.style.background = '#f8f9fa';
+                        statusDiv.style.color = '#495057';
+                        statusDiv.style.border = '1px solid #dee2e6';
+                }
+            }
+
             updateApiStatus(status = null, message = null) {
                 const indicator = document.getElementById('status-indicator');
                 const text = document.getElementById('status-text');
-                
+
                 if (indicator) {
                     // Remove all status classes
                     indicator.className = 'status-indicator';
-                    
+
                     if (status && message) {
                         indicator.classList.add(status);
                         if (text) text.textContent = message;
