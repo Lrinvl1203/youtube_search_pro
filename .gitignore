@@ -27,9 +27,10 @@ out/
 .DS_Store
 Thumbs.db
 
-# Logs
-logs
+# Logs (except project logs)
+logs/temp/
 *.log
+!logs/
 
 # Runtime data
 pids
@@ -51,3 +52,7 @@ pip-delete-this-directory.txt
 
 # Claude Code
 .claude/
+
+# Temporary files
+temp/
+tmp/
